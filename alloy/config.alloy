@@ -1,0 +1,32 @@
+// 파일 디스커버리 (로그 경로 지정)
+local.file_match "photique_api_server_logs" {
+  path_targets = [
+    { "__path__" = "/logs/spring.log" },  // 수집할 경로
+  ]
+}
+
+// 로그 파일 읽기 및 푸시
+loki.source.file "photique_api_server_source" {
+  targets    = local.file_match.photique_api_server_logs.targets
+  forward_to = [loki.process.photique_api_server_pipeline.receiver]
+}
+
+
+// 파이프라인 (라벨 붙이기)
+loki.process "photique_api_server_pipeline" {
+  forward_to = [loki.write.local_loki.receiver]
+
+  stage.static_labels {
+    values = {
+      job = "photique-api-server",
+      env = "local",
+    }
+  }
+}
+
+// Loki로 전송
+loki.write "local_loki" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
